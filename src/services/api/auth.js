@@ -30,6 +30,8 @@ export const register = async (email, password) => {
 // =======================
 export const login = async (email, password) => {
   try {
+    console.log('Credenciales en LOGIN:', email, password);
+    console.log('URL de la API en LOGIN:', `${API_URL}/auth/login`);
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: {
@@ -46,6 +48,7 @@ export const login = async (email, password) => {
 
     return data;
   } catch (error) {
+    console.error('Error en la función login:', error);
     throw error;
   }
 };

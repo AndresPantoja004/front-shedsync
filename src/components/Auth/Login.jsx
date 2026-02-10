@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { useContext } from "react";
+import { AuthContext  } from "../../context/AuthContext";
+import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -7,12 +11,14 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { login } from "../../services/api/auth";
+import { login as loginRequest } from "../../services/api/auth";
 
-export default function Login() {
+export default function Login({navigation}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
+  const router = useRouter();
 
   const handleLogin = async () => {
     console.log("Hola dua dua")
@@ -24,11 +30,22 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const result = await login(email, password);
+      const result = await loginRequest(email, password);
       console.log("Login OK:", result);
+      
 
-      Alert.alert("Éxito", "Inicio de sesión correcto");
+      Alert.alert("Éxito", "Inicio de sesión correcto", [
+        {
+          text: "Continuar",
+          onPress: async () => {
+            await login(result.token);
+          }
+        },
+      ]);
 
+      // Navegación a Home
+      
+      
       // TODO: guardar token con AsyncStorage
       // await AsyncStorage.setItem('token', result.token);
 
@@ -145,7 +162,7 @@ export default function Login() {
 
         {/* Footer */}
         <View className="items-center pb-6">
-          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+          <TouchableOpacity onPress={()=>router.push("/register/step1")}>
             <Text className="text-[#96c5a9] text-sm">
               ¿No tienes cuenta?
               <Text className="text-[#38a75e] font-bold"> Regístrate</Text>

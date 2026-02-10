@@ -1,5 +1,5 @@
 import { View, Text, Image } from "react-native";
-import { getComics } from "../services/comics";
+import { getComics } from "../../services/comics";
 
 export default function Header() {
 
