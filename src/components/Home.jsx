@@ -7,14 +7,70 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { userInfo } from "../services/api/user";
+import { useRouter } from "expo-router";
+import { obtenerHorario } from "../services/api/horario";
+
+import * as Notifications from "expo-notifications";
+
+const ordenDias = {
+  DOMINGO: 0,
+  LUNES: 1,
+  MARTES: 2,
+  MIERCOLES: 3,
+  JUEVES: 4,
+  VIERNES: 5,
+  SABADO: 6,
+};
+
+const convertirAMinutosSemana = (dia, hora) => {
+  const [h, m] = hora.split(":");
+  const minutosDia = parseInt(h) * 60 + parseInt(m);
+  return ordenDias[dia] * 1440 + minutosDia;
+};
 
 export default function Home() {
   const scheme = useColorScheme();
   const { logout } = useContext(AuthContext);
-
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [horario, setHorario] = useState([]);
+  const [claseActual, setClaseActual] = useState(null);
+  const [proximaClase, setProximaClase] = useState(null);
+  const [tiempoRestante, setTiempoRestante] = useState(null);
+  const [notificacionProgramada, setNotificacionProgramada] = useState(null);
 
+  const programarNotificacion = async (clase) => {
+    if (!clase) return;
+
+    const idUnico = `${clase.dia}-${clase.hora_inicio}-${clase.id_asignatura}`;
+
+    if (notificacionProgramada === idUnico) return;
+
+    const ahora = new Date();
+
+    const fechaClase = new Date();
+    fechaClase.setHours(10);
+    fechaClase.setMinutes(0);
+
+    const fechaNotificacion = new Date(fechaClase.getTime() - 5 * 60000);
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Test",
+        body: "Notificación en 5 segundos",
+      },
+      trigger: {
+        type: "timeInterval",
+        seconds: 100000,
+      },
+    });
+
+    setNotificacionProgramada(idUnico);
+  };
+
+  const nombreArray = user?.nombres ? user.nombres.trim().split(" ") : [];
+  // 1️⃣ Cargar usuario
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -28,11 +84,122 @@ export default function Home() {
     };
 
     loadUser();
-  }, []); // 👈 IMPORTANTE: array vacío
+  }, []);
 
   const handleLogout = () => {
     logout();
   };
+
+  const horaEnMinutos = (hora) => {
+    const [h, m] = hora.split(":");
+    return parseInt(h) * 60 + parseInt(m);
+  };
+
+  const calcularClase = () => {
+    if (horario.length === 0) return;
+
+    const ahora = new Date();
+    const diaActualNumero = ahora.getDay(); // 0-6
+    const minutosActual = ahora.getHours() * 60 + ahora.getMinutes();
+    const minutosActualSemana = diaActualNumero * 1440 + minutosActual;
+
+    let claseActualTemp = null;
+    let proximaTemp = null;
+    let menorDiferencia = Infinity;
+
+    horario.forEach((clase) => {
+      const inicioSemana = convertirAMinutosSemana(
+        clase.dia,
+        clase.hora_inicio,
+      );
+      const finSemana = convertirAMinutosSemana(clase.dia, clase.hora_fin);
+
+      // 1. CLASE EN CURSO
+      if (
+        minutosActualSemana >= inicioSemana &&
+        minutosActualSemana < finSemana
+      ) {
+        claseActualTemp = clase;
+      }
+      // 2. CLASE FUTURA (para encontrar la más cercana)
+      else if (inicioSemana > minutosActualSemana) {
+        const diferencia = inicioSemana - minutosActualSemana;
+        if (diferencia < menorDiferencia) {
+          menorDiferencia = diferencia;
+          proximaTemp = clase;
+        }
+      }
+    });
+
+    // Lógica de visualización y tiempo
+    if (claseActualTemp) {
+      // Si hay clase ahora, mostrar cuánto falta para que TERMINE
+      const finSemana = convertirAMinutosSemana(
+        claseActualTemp.dia,
+        claseActualTemp.hora_fin,
+      );
+      setClaseActual(claseActualTemp);
+      setTiempoRestante(finSemana - minutosActualSemana);
+    } else if (proximaTemp) {
+      // Si no hay clase ahora, mostrar cuánto falta para que EMPIECE la próxima
+      const inicioSemanaProxima = convertirAMinutosSemana(
+        proximaTemp.dia,
+        proximaTemp.hora_inicio,
+      );
+      setClaseActual(null);
+      setProximaClase(proximaTemp);
+      setTiempoRestante(inicioSemanaProxima - minutosActualSemana);
+      programarNotificacion(proximaTemp);
+    } else if (horario.length > 0) {
+      // Si no hay más clases en la semana, podrías resetear o apuntar a la primera del lunes
+      setClaseActual(null);
+      setProximaClase(horario[0]);
+      setTiempoRestante(null);
+    }
+  };
+
+  const formatearTiempo = (minutosTotales) => {
+    if (!minutosTotales) return "0m";
+
+    const horas = Math.floor(minutosTotales / 60);
+    const minutos = minutosTotales % 60;
+
+    if (horas > 0) {
+      return `${horas}h ${minutos}m`;
+    }
+
+    return `${minutos}m`;
+  };
+
+  // 2️⃣ Cargar horario
+  useEffect(() => {
+    const cargarHorario = async () => {
+      try {
+        const data = await obtenerHorario(user?.id_estudiante);
+        setHorario(data);
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (user?.id_estudiante) {
+      cargarHorario();
+    }
+  }, [user]);
+
+  // 3️⃣ Intervalo tiempo real
+  useEffect(() => {
+    if (horario.length === 0) return;
+
+    calcularClase();
+
+    const interval = setInterval(() => {
+      calcularClase();
+    }, 10000); // 🔥 cada segundo
+
+    return () => clearInterval(interval);
+  }, [horario]);
 
   if (loading) {
     return (
@@ -60,22 +227,16 @@ export default function Home() {
           <View>
             <Text className="text-sm text-gray-400">Buenos días,</Text>
             <Text className="text-xl font-bold text-white">
-              Hola, {user?.nombres}
+              Hola, {nombreArray[0] + " " + nombreArray[2]}
             </Text>
             <TouchableOpacity
-              onPress={() => handleLogout()}
-              className="flex flex-row text-center items-center justify-center"
+              onPress={handleLogout}
+              activeOpacity={0.7}
+              className="flex-row items-center self-start mt-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full"
             >
-              <Text className="flex flex-row justify-center items-center r text-primary  font-bold mt-1 bg-red-500/20 px-2 py-1 rounded  ">
-                <Ionicons
-                  name="close-circle-outline"
-                  size={24}
-                  color="white"
-                  className="mr-1"
-                />
-                <Text className="text-center justify-center items-center">
-                  Cerrar Sesión{" "}
-                </Text>
+              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+              <Text className="text-red-500 font-semibold ml-2 text-xs">
+                Cerrar Sesiónn
               </Text>
             </TouchableOpacity>
           </View>
@@ -96,40 +257,84 @@ export default function Home() {
       >
         {/* EN CURSO */}
         <View className="mt-4">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-lg font-bold text-white">En curso</Text>
-            <Text className="text-primary text-sm font-semibold">● Ahora</Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-bold text-white">
+              {claseActual ? "En curso" : "Próxima clase"}
+            </Text>
+
+            <Text className="text-primary text-sm font-semibold">
+              {claseActual ? "● Ahora" : "● Próxima"}
+            </Text>
           </View>
 
-          <View className="rounded-xl bg-surface-dark p-5 overflow-hidden">
-            <View className="flex-row justify-between mb-4">
-              <View>
-                <Text className="text-primary text-sm font-medium">
-                  Laboratorio 404
-                </Text>
-                <Text className="text-2xl font-bold text-white">
-                  Base de Datos II
-                </Text>
+          {(claseActual || proximaClase) && (
+            <View className="rounded-2xl bg-surface-dark p-6 overflow-hidden shadow-lg">
+              {/* Encabezado */}
+              <View className="flex-row justify-between items-start mb-4">
+                <View className="flex-1">
+                  <Text className="text-primary text-sm font-semibold mb-1">
+                    {claseActual
+                      ? claseActual.Espacio?.nombre
+                      : proximaClase?.dia}
+                  </Text>
+
+                  <Text className="text-2xl font-bold text-white">
+                    {claseActual
+                      ? claseActual.Asignatura.nombre
+                      : proximaClase.Asignatura.nombre}
+                  </Text>
+
+                  <Text className="text-gray-400 text-sm mt-1">
+                    {claseActual
+                      ? `${claseActual.hora_inicio.slice(0, 5)} - ${claseActual.hora_fin.slice(0, 5)}`
+                      : `${proximaClase.hora_inicio.slice(0, 5)} - ${proximaClase.hora_fin.slice(0, 5)}`}
+                  </Text>
+                </View>
+
+                <View className="bg-primary/20 px-4 py-2 rounded-full">
+                  <Text className="text-primary font-bold text-base">
+                    {formatearTiempo(tiempoRestante)}
+                  </Text>
+                </View>
               </View>
 
-              <View className="bg-primary/20 px-3 py-1 rounded-full text-center justify-center">
-                <Text className="text-primary text-base font-bold text-center">
-                  10:00 - 12:00
-                </Text>
-              </View>
+              {/* Barra progreso solo si está en curso */}
+              {claseActual && (
+                <View>
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-xs text-gray-400">
+                      Tiempo restante
+                    </Text>
+                    <Text className="text-xs text-gray-400">
+                      {formatearTiempo(tiempoRestante)}
+                    </Text>
+                  </View>
+
+                  <View className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <View
+                      className="h-full bg-primary rounded-full"
+                      style={{
+                        width: `${
+                          (tiempoRestante /
+                            (horaEnMinutos(claseActual.hora_fin) -
+                              horaEnMinutos(claseActual.hora_inicio))) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </View>
+                </View>
+              )}
             </View>
+          )}
 
-            <View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-xs text-gray-300">Tiempo restante</Text>
-                <Text className="text-xs text-gray-300">45 min</Text>
-              </View>
-
-              <View className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <View className="h-full bg-primary w-[65%] rounded-full" />
-              </View>
+          {!claseActual && !proximaClase && (
+            <View className="rounded-xl bg-surface-dark p-4">
+              <Text className="text-gray-400 text-center">
+                No tienes clases programadas
+              </Text>
             </View>
-          </View>
+          )}
         </View>
 
         {/* ACCESOS RAPIDOS */}
@@ -145,10 +350,12 @@ export default function Home() {
                 icon: (
                   <AntDesign name="schedule" size={24} color="bg-primary" />
                 ),
+                fun: () => router.push("/horario"),
               },
               {
                 label: "Buscar\nEspacios",
                 icon: <Ionicons name="location" size={24} color="bg-primary" />,
+                fun: () => router.push("/aulasdis"),
               },
               {
                 label: "Reportar\nIncidente",
@@ -159,11 +366,13 @@ export default function Home() {
                     color="bg-primary"
                   />
                 ),
+                fun: () => router.push("/reportar"),
               },
             ].map((item, i) => (
               <TouchableOpacity
                 key={i}
                 className="flex-1 bg-surface-dark rounded-xl items-center py-4"
+                onPress={item.fun}
               >
                 <View className="h-12 w-12 rounded-full bg-primary/10 items-center justify-center mb-2">
                   <Text className="text-primary text-xl">{item.icon}</Text>

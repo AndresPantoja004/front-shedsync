@@ -21,12 +21,12 @@ export default function RegisterStep1() {
   const [email, setEmail] = useState(registro.paso1.email);
   const [password, setPassword] = useState(registro.paso1.password);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [rol, setRol] = useState(registro.paso1.rol || "student");
+  const [rol, setRol] = useState(registro.paso1.rol || "estudiante");
   const guardarPaso1 = () => {
-    if (!nombre || !email || !password) {
+/*     if (!nombre || !email || !password) {
       alert("Completa todos los campos");
       return;
-    }
+    } */
 
     if (password !== confirmPassword) {
       alert("Las contraseñas no coinciden");
@@ -35,6 +35,7 @@ export default function RegisterStep1() {
 
     setRegistro((prev) => ({
       ...prev,
+      tipoUsuario:rol[0],
       paso1: {
         nombre,
         email,
@@ -130,14 +131,14 @@ export default function RegisterStep1() {
         <View className="flex-row gap-4 ">
           <RoleCard
             label="Estudiante"
-            selected={rol === "student"}
-            onPress={() => setRol("student")}
+            selected={rol === "estudiante"}
+            onPress={() => setRol("estudiante")}
             icon="estu"
           />
           <RoleCard
             label="Profesor"
-            selected={rol === "professor"}
-            onPress={() => setRol("professor")}
+            selected={rol === "profesor"}
+            onPress={() => setRol("profesor")}
             className="bg-slate-800 "
           />
         </View>

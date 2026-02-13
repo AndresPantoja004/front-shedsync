@@ -1,85 +1,125 @@
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useContext } from "react";
-import { RegisterContext } from "../../../src/context/RegisterContext";
-import { AuthContext } from "../../../src/context/AuthContext"; // opcional
+import { register } from "../../services/api/auth";
+import { asignarRol } from "../../services/api/user";
+import { crearEstudiante } from "../../services/api/estudiante";
+import { asignarSemestre } from "../../services/api/estudiante";
 
-const SUBJECTS = {
-  1: [
-    { id: "INF101", name: "Introducción a la Programación" },
-    { id: "MAT120", name: "Matemáticas Discretas" },
-  ],
-  2: [
-    { id: "INF202", name: "Estructura de Datos" },
-    { id: "FIS110", name: "Física General I" },
-    { id: "MAT201", name: "Cálculo Diferencial" },
-  ],
-};
+import { RegisterContext } from "../../../src/context/RegisterContext";
+import { getSemestresCarrera } from "../../services/api/carrera";
 
 export default function Step3() {
-  const { registro, setRegistro } = useContext(RegisterContext);
-  /*   const { login } = useContext(AuthContext); // opcional */
-
   const router = useRouter();
+  const { registro, setRegistro } = useContext(RegisterContext);
+
+  const studentType = registro.paso2.studentType; // "Z" o "C"
+  const careerId = registro.paso2.careerId;
+
+  const [semestres, setSemestres] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [selected, setSelected] = useState(
-    registro.paso3.repeatedSubjects || [],
+    registro.paso3?.repeatedSubjects || [],
   );
 
-  const toggle = (id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+  // Solo para tipo Z
+  const [selectedSemestreZ, setSelectedSemestreZ] = useState(null);
+
+  useEffect(() => {
+    const fetchSemestres = async () => {
+      try {
+        console.log("Carrera ID" + careerId);
+        const data = await getSemestresCarrera(careerId);
+        setSemestres(data);
+      } catch (error) {
+        console.error("Error cargando semestres", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSemestres();
+  }, []);
+
+  // Toggle solo permitido para tipo C
+  const toggle = (id_asignatura, id_semestre) => {
+    if (studentType === "Z") return;
+
+    setSelected((prev) => {
+      const exists = prev.find((item) => item.id_asignatura === id_asignatura);
+
+      if (exists) {
+        return prev.filter((item) => item.id_asignatura !== id_asignatura);
+      }
+
+      return [...prev, { id_asignatura, id_semestre }];
+    });
   };
 
   const finalizarRegistro = async () => {
-    setRegistro((prev) => ({
-      ...prev,
-      paso3: {
-        repeatedSubjects: selected,
-      },
-    }));
-
-    const payload = {
-      ...registro,
-      paso3: {
-        repeatedSubjects: selected,
-      },
-    };
-
-    /* try {
-      const res = await fetch("http://TU_IP:3000/api/usuarios/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Error al registrar");
+    try {
+      if (studentType === "Z" && !selectedSemestreZ) {
+        alert("Debes seleccionar un semestre completo");
+        return;
       }
 
-      // Login automático (opcional)
-      if (data.token) {
-        await login(data.token);
-      }
+      console.log("EMAIL Y PASS PARA ENVIAR " + registro.paso1.email);
 
-      // Limpiar contexto
-      setRegistro({
-        tipoUsuario: "C",
-        paso1: {},
-        paso2: {},
-        paso3: {},
+      // 1️⃣ Registrar usuario
+      const userResponse = await register({
+        email: registro.paso1.email,
+        password: registro.paso1.password,
       });
 
-      router.replace("/"); 
-    } catch (err) {
-      alert(err.message);
-    } */
+      console.log(userResponse);
 
-    console.log(JSON.stringify(registro))
+      const idUsuario = userResponse.usuario.id_usuario;
+
+      // 2️⃣ Asignar rol (estudiante)
+      await asignarRol(idUsuario, 1); // 👈 asumiendo que 2 = estudiante
+
+      // 3️⃣ Crear estudiante
+      const estudianteResponse = await crearEstudiante({
+        id_usuario: idUsuario,
+        id_carrera: registro.paso2.careerId,
+        tipo: registro.paso2.studentType,
+        nombres: registro.paso1.nombre,
+        tipos: registro.paso1.studentType,
+        apellidos: registro.paso1.nombre,
+        // Z o C
+      });
+
+      console.log(estudianteResponse);
+
+      const idEstudiante = estudianteResponse.id_estudiante;
+
+      console.log(
+        "ID ESTUDIANTE REGISTER:",
+        idEstudiante,
+        selectedSemestreZ,
+        registro.paso2.studentType,
+        selected,
+      );
+
+      // 4️⃣ Asignar semestre + asignaturas
+      const asignaturasPayload = selected;
+
+      await asignarSemestre(
+        idEstudiante,
+        null, // ya no lo necesitamos
+        registro.paso2.studentType === "Z" ? 1 : 2,
+        asignaturasPayload,
+      );
+
+      // 5️⃣ Éxito 🎉
+      alert("Registro completado correctamente");
+      router.replace("/");
+    } catch (error) {
+      console.error("Error en registro:", error);
+      alert(error.message || "Error al completar el registro");
+    }
   };
 
   return (
@@ -109,71 +149,118 @@ export default function Step3() {
             <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
             <View className="h-1.5 flex-1 rounded-full bg-primary" />
           </View>
-          <Text className="text-xs text-white dark:text-slate-400">
-            Paso 3 de 3
-          </Text>
+          <Text className="text-xs text-white">Paso 3 de 3</Text>
         </View>
 
         {/* TITLE */}
         <View className="px-5">
           <Text className="text-white text-3xl font-extrabold mb-2">
-            Asignaturas Repetidas
+            {studentType == "Z"
+              ? "Escoge el semestre que perteneces"
+              : "Escoge las asignaturas"}
           </Text>
           <Text className="text-slate-400">
-            Selecciona las materias que cursarás por segunda vez.
+            {studentType == "Z"
+              ? "Selecciona el semestre que cruzaras por primera vez"
+              : "Selecciona las asignaturas que estes cruzando por primera vez o repitiendo"}
           </Text>
         </View>
 
-        {/* SEMESTERS */}
-        <View className="px-4 mt-6 gap-6">
-          {Object.entries(SUBJECTS).map(([semester, items]) => (
-            <View
-              key={semester}
-              className="bg-surface-dark rounded-2xl border border-slate-700 overflow-hidden"
-            >
-              <View className="px-5 py-4 border-b border-slate-700">
-                <Text className="text-white text-lg font-bold">
-                  Semestre {semester}
-                </Text>
-              </View>
+        {/* CONTENT */}
+        {loading ? (
+          <Text className="text-white text-center mt-10">
+            Cargando semestres...
+          </Text>
+        ) : (
+          <View className="px-4 mt-6 gap-6">
+            {semestres.map((sem) => {
+              const isSelectedZ = selectedSemestreZ === sem.id_semestre;
 
-              {items.map((subj) => {
-                const checked = selected.includes(subj.id);
+              return (
+                <View
+                  key={sem.id_semestre}
+                  className="bg-surface-dark rounded-2xl border border-slate-700 overflow-hidden"
+                >
+                  {/* SEMESTER HEADER */}
+                  <View className="px-5 py-4 border-b border-slate-700 flex-row justify-between items-center">
+                    <Text className="text-white text-lg font-bold">
+                      Semestre {sem.nivel}
+                    </Text>
 
-                return (
-                  <TouchableOpacity
-                    key={subj.id}
-                    onPress={() => toggle(subj.id)}
-                    className="flex-row items-center p-4 border-t border-slate-700"
-                  >
-                    <View
-                      className={`h-6 w-6 rounded-md border items-center justify-center ${
-                        checked
-                          ? "bg-primary border-primary"
-                          : "border-slate-500"
-                      }`}
-                    >
-                      {checked && (
-                        <Text className="text-background-dark font-bold">
-                          ✓
+                    {/* BOTÓN SOLO PARA TIPO Z */}
+                    {studentType === "Z" && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedSemestreZ(sem.id_semestre);
+                          setSelected(
+                            (sem.asignaturas || []).map((a) => ({
+                              id_asignatura: a.id_asignatura,
+                              id_semestre: sem.id_semestre,
+                            })),
+                          );
+                        }}
+                        className={`px-3 py-1 rounded-lg ${
+                          isSelectedZ ? "bg-primary" : "bg-slate-700"
+                        }`}
+                      >
+                        <Text className="text-white text-xs">
+                          {isSelectedZ ? "Seleccionado" : "Elegir semestre"}
                         </Text>
-                      )}
-                    </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-                    <View className="ml-4">
-                      <Text className="text-white font-medium">
-                        {subj.name}
-                      </Text>
-                      <Text className="text-slate-400 text-xs">
-                        Código: {subj.id}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-        </View>
+                  {/* SUBJECTS */}
+                  {!sem.asignaturas || sem.asignaturas.length === 0 ? (
+                    <Text className="text-slate-400 px-5 py-4 text-sm">
+                      No hay asignaturas disponibles
+                    </Text>
+                  ) : (
+                    sem.asignaturas.map((subj) => {
+                      const checked = selected.some(
+                        (x) => x.id_asignatura === subj.id_asignatura,
+                      );
+
+                      return (
+                        <TouchableOpacity
+                          key={subj.id_asignatura}
+                          disabled={studentType === "Z"}
+                          onPress={() =>
+                            toggle(subj.id_asignatura, sem.id_semestre)
+                          }
+                          className="flex-row items-center p-4 border-t border-slate-700"
+                        >
+                          <View
+                            className={`h-6 w-6 rounded-md border items-center justify-center ${
+                              checked
+                                ? "bg-primary border-primary"
+                                : "border-slate-500"
+                            }`}
+                          >
+                            {checked && (
+                              <Text className="text-background-dark font-bold">
+                                ✓
+                              </Text>
+                            )}
+                          </View>
+
+                          <View className="ml-4">
+                            <Text className="text-white font-medium">
+                              {subj.nombre}
+                            </Text>
+                            <Text className="text-slate-400 text-xs">
+                              NRC: {subj.nrc}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       {/* FOOTER */}
@@ -186,7 +273,7 @@ export default function Step3() {
         </View>
 
         <TouchableOpacity
-          onPress={() => finalizarRegistro()}
+          onPress={finalizarRegistro}
           className="bg-primary py-4 rounded-xl items-center mb-4"
         >
           <Text className="text-white font-bold">Finalizar Registro</Text>

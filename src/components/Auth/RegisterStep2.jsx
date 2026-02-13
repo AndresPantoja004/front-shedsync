@@ -80,7 +80,7 @@ export default function RegisterStep2() {
     }
   };
 
-/*   const redirectStep3 = (career, type) => {
+  /*   const redirectStep3 = (career, type) => {
     router.push("/register/step3", {
       career,
       type,
@@ -139,14 +139,10 @@ export default function RegisterStep2() {
         <View className="flex-row gap-3 w-full">
           <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
           <View className="h-1.5 flex-1 rounded-full bg-primary" />
-          {type == "C" ? (
-            <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
-          ) : (
-            ""
-          )}
+          <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
         </View>
         <Text className="text-xs text-white dark:text-slate-400">
-          Paso 1 de {type == "C" ? "3" : "2"}
+          Paso 1 de 3
         </Text>
       </View>
 
@@ -290,9 +286,7 @@ export default function RegisterStep2() {
           className="bg-primary py-4 rounded-xl items-center my-4"
           activeOpacity={0.85}
         >
-          <Text className="text-white font-bold text-base">
-            {type == "C" ? "Siguiente" : "Finalizar Registro"}
-          </Text>
+          <Text className="text-white font-bold text-base">Siguiente</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -4,7 +4,7 @@ export const RegisterContext = createContext(null);
 
 export function RegisterProvider({ children }) {
   const [registro, setRegistro] = useState({
-    tipoUsuario: "C",
+    tipoUsuario: "S",
     paso1: {
       nombre: "",
       email: "",

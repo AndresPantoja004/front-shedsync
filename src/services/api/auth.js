@@ -3,7 +3,7 @@ import { API_URL } from './config';
 // =======================
 // REGISTRO
 // =======================
-export const register = async (email, password) => {
+export const register = async ({email, password}) => {
   try {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
