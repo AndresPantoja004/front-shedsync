@@ -8,6 +8,7 @@ export function RegisterProvider({ children }) {
     paso1: {
       nombre: "",
       email: "",
+      phone:"",
       password: "",
       rol: ""
     },

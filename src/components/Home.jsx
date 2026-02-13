@@ -10,7 +10,7 @@ import { userInfo } from "../services/api/user";
 import { useRouter } from "expo-router";
 import { obtenerHorario } from "../services/api/horario";
 
-import * as Notifications from "expo-notifications";
+/* import * as Notifications from "expo-notifications"; */
 
 const ordenDias = {
   DOMINGO: 0,
@@ -30,9 +30,9 @@ const convertirAMinutosSemana = (dia, hora) => {
 
 export default function Home() {
   const scheme = useColorScheme();
-  const { logout } = useContext(AuthContext);
+  const { logout , user} = useContext(AuthContext);
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [userApi, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [horario, setHorario] = useState([]);
   const [claseActual, setClaseActual] = useState(null);
@@ -55,7 +55,7 @@ export default function Home() {
 
     const fechaNotificacion = new Date(fechaClase.getTime() - 5 * 60000);
 
-    await Notifications.scheduleNotificationAsync({
+/*     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Test",
         body: "Notificación en 5 segundos",
@@ -66,10 +66,10 @@ export default function Home() {
       },
     });
 
-    setNotificacionProgramada(idUnico);
+    setNotificacionProgramada(idUnico); */
   };
 
-  const nombreArray = user?.nombres ? user.nombres.trim().split(" ") : [];
+  const nombreArray = userApi?.nombres ? userApi.nombres.trim().split(" ") : [];
   // 1️⃣ Cargar usuario
   useEffect(() => {
     const loadUser = async () => {
@@ -175,7 +175,7 @@ export default function Home() {
   useEffect(() => {
     const cargarHorario = async () => {
       try {
-        const data = await obtenerHorario(user?.id_estudiante);
+        const data = await obtenerHorario(userApi?.id_estudiante);
         setHorario(data);
         console.log(data);
       } catch (error) {
@@ -183,10 +183,10 @@ export default function Home() {
       }
     };
 
-    if (user?.id_estudiante) {
+    if (userApi?.id_estudiante) {
       cargarHorario();
     }
-  }, [user]);
+  }, [userApi]);
 
   // 3️⃣ Intervalo tiempo real
   useEffect(() => {
@@ -216,12 +216,7 @@ export default function Home() {
       <View className="flex-row items-center justify-between px-6 pt-12 pb-3">
         <View className="flex-row items-center gap-4">
           <View className="h-12 w-12 rounded-full overflow-hidden border-2 border-primary/30">
-            <Image
-              source={{
-                uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuBsnSHLKhXARpNT9WwCO3TGqDtmTzNiCboB-b9OyZqjzF96RzMY1gXFuIoEHY8-VwX-pU5tqOutxKXBDi3rGGR6ZVJvM5N1OGgWN4Vr3PNlAhdQ4332Wgz7wCW1uvZscSdHsMiabnl5rpxN-abjRNaIzviHvKoloBY5sxHnGQNgWEzDcW_Yy0EPInzjYhRetjEZ60clamx6stvBSD_xBYs4dsUysrHRs1BOulpkCNqPntEWmCaesT0PlzWqMOU5EQU0gJJ1wacVc7s",
-              }}
-              className="w-full h-full"
-            />
+           <Image source={{ uri: user.avatar }} className="w-full h-full" />
           </View>
 
           <View>
@@ -229,24 +224,22 @@ export default function Home() {
             <Text className="text-xl font-bold text-white">
               Hola, {nombreArray[0] + " " + nombreArray[2]}
             </Text>
-            <TouchableOpacity
-              onPress={handleLogout}
+            <Text
               activeOpacity={0.7}
-              className="flex-row items-center self-start mt-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full"
+              className="flex-row items-center self-start mt-2 bg-green-500/10 border border-primary px-3 py-1.5 rounded-full"
             >
-              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              <Text className="text-red-500 font-semibold ml-2 text-xs">
-                Cerrar Sesiónn
+              <Text className="text-primary font-semibold ml-2 text-xs">
+                {user.rol == 1 ? 'Estudiante':user.rol == 2 ? 'Profesor': 'Admin'}
               </Text>
-            </TouchableOpacity>
+            </Text>
           </View>
         </View>
 
         <View className="h-12 w-12 rounded-full bg-surface-dark items-center justify-center relative">
           <Text className="text-white text-lg">
-            <Ionicons name="notifications" size={24} color="white" />
+            
           </Text>
-          <View className="absolute top-3 right-3 h-2.5 w-2.5 rounded-xl bg-green-500" />
+          <View className="absolute top-5 right-5 h-2.5 w-2.5 rounded-xl bg-green-500" />
         </View>
       </View>
 
@@ -388,16 +381,14 @@ export default function Home() {
         {/* NOVEDADES */}
         <View className="mt-6">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-bold text-white">Novedades</Text>
-            <Text className="text-primary text-xs font-bold">Ver todo</Text>
+            <Text className="text-lg font-bold text-white">Novedades</Text>        
           </View>
 
           {/* Card 1 */}
           <View className="bg-surface-dark rounded-xl p-4 border-l-4 border-primary mb-3">
-            <Text className="text-sm font-bold text-white">Cambio de Aula</Text>
+            <Text className="text-sm font-bold text-white">Objeto Perdido</Text>
             <Text className="text-xs text-gray-400 mt-1">
-              La clase de Matemáticas Discretas se mueve al Aula 2B por
-              mantenimiento.
+              Se perdio una compu
             </Text>
             <Text className="text-[10px] text-gray-500 mt-2">Hace 2 horas</Text>
           </View>
@@ -405,11 +396,10 @@ export default function Home() {
           {/* Card 2 */}
           <View className="bg-surface-dark rounded-xl p-4 border-l-4 border-amber-500">
             <Text className="text-sm font-bold text-white">
-              Entrega Pendiente
+              Infraestructura
             </Text>
             <Text className="text-xs text-gray-400 mt-1">
-              El proyecto final de Ética se entrega mañana antes de las 11:59
-              PM.
+              Se daño un proyector
             </Text>
             <Text className="text-[10px] text-gray-500 mt-2">Hace 30 min</Text>
           </View>
@@ -417,7 +407,7 @@ export default function Home() {
       </ScrollView>
 
       {/* BOTTOM NAV */}
-      <View className="absolute bottom-6 left-6 right-6 bg-surface-dark/80 rounded-2xl flex-row justify-between px-4 py-2">
+{/*       <View className="absolute bottom-6 left-6 right-6 bg-surface-dark/80 rounded-2xl flex-row justify-between px-4 py-2">
         {[
           <Entypo name="home" size={24} color="#38e07b" />,
           <Entypo name="calendar" size={24} color="gray" />,
@@ -433,7 +423,7 @@ export default function Home() {
             <Text className="text-xl">{icon}</Text>
           </View>
         ))}
-      </View>
+      </View> */}
     </View>
   );
 }

@@ -3,14 +3,14 @@ import { API_URL } from './config';
 // =======================
 // REGISTRO
 // =======================
-export const register = async ({email, password}) => {
+export const register = async ({email, password,phone}) => {
   try {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password,phone }),
     });
 
     const data = await response.json();

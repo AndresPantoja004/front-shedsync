@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons"; // Añadimos Ionicons para el ojo
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRouter } from "expo-router";
 
@@ -17,28 +17,42 @@ export default function RegisterStep1() {
   const { registro, setRegistro } = useContext(RegisterContext);
   const router = useRouter();
 
+  // Estados del formulario
   const [nombre, setNombre] = useState(registro.paso1.nombre);
   const [email, setEmail] = useState(registro.paso1.email);
+  const [phone, setPhone] = useState(registro.paso1.phone);
   const [password, setPassword] = useState(registro.paso1.password);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rol, setRol] = useState(registro.paso1.rol || "estudiante");
-  const guardarPaso1 = () => {
-/*     if (!nombre || !email || !password) {
-      alert("Completa todos los campos");
-      return;
-    } */
 
+  // Estados de visibilidad
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const formatPhone = (text) => {
+    // Elimina el 0 inicial si el usuario intenta escribirlo
+    let cleaned = text.replace(/^0/, "");
+    // Solo permite números
+    cleaned = cleaned.replace(/[^0-9]/g, "");
+    setPhone(cleaned);
+  };
+
+  const guardarPaso1 = () => {
     if (password !== confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
 
+    // Guardamos el teléfono con el prefijo incluido
+    const fullPhone = `+593${phone}`;
+
     setRegistro((prev) => ({
       ...prev,
-      tipoUsuario:rol[0],
+      tipoUsuario: rol[0],
       paso1: {
         nombre,
         email,
+        phone: fullPhone,
         password,
         rol,
       },
@@ -50,9 +64,13 @@ export default function RegisterStep1() {
   return (
     <View className="flex-1 bg-background-dark">
       {/* HEADER */}
-      <View className="flex-row items-center px-4 pt-4 pb-2 justify-between">
-        <TouchableOpacity className="w-12 h-12 items-center justify-center rounded-full">
-          <Text className="text-xl text-black dark:text-white">‹</Text>
+      <View className="flex-row items-center px-4 pt-12 pb-2 justify-between">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons
+            name="arrow-back-circle-outline"
+            size={40}
+            color="#38e07b"
+          />
         </TouchableOpacity>
       </View>
 
@@ -61,11 +79,9 @@ export default function RegisterStep1() {
         <View className="flex-row gap-3 w-full">
           <View className="h-1.5 flex-1 rounded-full bg-primary" />
           <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
-          {/* <View className="h-1.5 flex-1 rounded-full bg-slate-700" /> */}
+          <View className="h-1.5 flex-1 rounded-full bg-slate-700" />
         </View>
-        <Text className="text-xs text-white dark:text-slate-400">
-          Paso 1 de 2
-        </Text>
+        <Text className="text-xs text-slate-400">Paso 1 de 3</Text>
       </View>
 
       <ScrollView
@@ -73,62 +89,98 @@ export default function RegisterStep1() {
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* TITLE */}
-        <Text className="text-[28px] font-extrabold text-primary dark:text-white mb-2">
+        <Text className="text-[28px] font-extrabold text-white mb-2">
           Crear Cuenta
         </Text>
         <Text className="text-slate-400 mb-6">
-          Ingresa tus datos y selecciona tu rol universitario para comenzar.
+          Ingresa tus datos universitarios.
         </Text>
 
-        {/* INPUTS */}
+        {/* INPUTS ESTÁNDAR */}
         <Input
           label="Nombre Completo"
           placeholder="Ej. Juan Pérez"
           value={nombre}
           onChangeText={setNombre}
           labelClass="text-white"
-          containerClass="mt-2"
-          inputClass="text-lg bg-slate-800"
+          inputClass="bg-slate-800 text-white"
         />
-
         <Input
           label="Correo Institucional"
           placeholder="correo@universidad.edu"
           value={email}
           onChangeText={setEmail}
           labelClass="text-white"
-          containerClass="mt-2"
-          inputClass="text-lg bg-slate-800"
+          inputClass="bg-slate-800 text-white"
         />
 
-        <Input
-          label="Contraseña"
-          placeholder="••••••••"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          labelClass="text-white"
-          containerClass="mt-2"
-          inputClass="text-lg bg-slate-800"
-        />
+        {/* TELÉFONO CON PREFIJO FIJO */}
+        <Text className="text-sm font-bold text-white mt-4 mb-2">Teléfono</Text>
+        <View className="flex-row items-center bg-slate-800 rounded-xl px-4 h-14 border border-slate-700">
+          <View className="flex-row items-center border-r border-slate-600 pr-3 mr-3">
+            <Text className="text-white font-bold">+593</Text>
+          </View>
+          <TextInput
+            placeholder="969632415"
+            placeholderTextColor="#64748b"
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={formatPhone}
+            maxLength={9}
+            className="flex-1 text-white text-lg"
+          />
+        </View>
 
-        <Input
-          label="Confirmar Contraseña"
-          placeholder="••••••••"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          labelClass="text-white"
-          inputClass="tracking-widest bg-slate-800"
-        />
+        {/* CONTRASEÑA CON OJO */}
+        <View className="relative mt-4">
+          <Input
+            label="Contraseña"
+            placeholder="••••••••"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            labelClass="text-white"
+            inputClass="bg-slate-800 text-white pr-12"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-[40%]"
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={22}
+              color="#38e07b"
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View className="relative mt-4">
+          <Input
+            label="Confirmar Contraseña"
+            placeholder="••••••••"
+            secureTextEntry={!showConfirmPassword}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            labelClass="text-white"
+            inputClass="bg-slate-800 text-white pr-12"
+          />
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-4 top-[40%]"
+          >
+            <Ionicons
+              name={showConfirmPassword ? "eye-off" : "eye"}
+              size={22}
+              color="#38e07b"
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* ROLE */}
-        <Text className="text-sm font-bold text-gray-200 mt-4 mb-3">
+        <Text className="text-sm font-bold text-gray-200 mt-6 mb-3">
           Selecciona tu Rol
         </Text>
-
-        <View className="flex-row gap-4 ">
+        <View className="flex-row gap-4">
           <RoleCard
             label="Estudiante"
             selected={rol === "estudiante"}
@@ -139,16 +191,14 @@ export default function RegisterStep1() {
             label="Profesor"
             selected={rol === "profesor"}
             onPress={() => setRol("profesor")}
-            className="bg-slate-800 "
+            icon="profe"
           />
         </View>
 
-        {/* FOOTER LINK */}
-        <View className="mt-6 items-center">
-          <Text className="text-slate-400 text-MD">
-            ¿Ya tienes cuenta?
+        <View className="mt-8 items-center">
+          <Text className="text-slate-400">
+            ¿Ya tienes cuenta?{" "}
             <Link href={"/"} className="text-primary font-bold">
-              {" "}
               Inicia sesión
             </Link>
           </Text>
@@ -156,32 +206,28 @@ export default function RegisterStep1() {
       </ScrollView>
 
       {/* BOTTOM BUTTON */}
-      <View className="absolute bottom-0 w-full px-4 pb-4 bg-background-dark border-t border-slate-800">
+      <View className="absolute bottom-0 w-full px-6 pb-8 bg-background-dark border-t border-slate-800">
         <TouchableOpacity
-          className="bg-primary py-4 rounded-xl items-center my-4"
-          onPress={() => guardarPaso1()}
+          className="bg-primary py-4 rounded-2xl items-center mt-4"
+          onPress={guardarPaso1}
         >
-          <Text className="text-white font-bold text-base">Siguiente</Text>
+          <Text className="text-background-dark font-bold text-lg">
+            Siguiente
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-/* ---------------- COMPONENTES AUX ---------------- */
-
 function RoleCard({ label, icon, selected, onPress }) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-1 rounded-xl p-4 items-center border-2  ${
-        selected
-          ? "border-primary bg-primary/10"
-          : "border-slate-700 bg-slate-800"
-      }`}
+      className={`flex-1 rounded-2xl p-4 items-center border-2 ${selected ? "border-primary bg-primary/10" : "border-slate-700 bg-slate-800"}`}
     >
-      <Text className="text-2xl mb-2">
-        {icon == "estu" ? (
+      <View className="mb-2">
+        {icon === "estu" ? (
           <AntDesign
             name="user"
             size={24}
@@ -194,7 +240,7 @@ function RoleCard({ label, icon, selected, onPress }) {
             color={selected ? "#38e07b" : "gray"}
           />
         )}
-      </Text>
+      </View>
       <Text
         className={`font-bold ${selected ? "text-primary" : "text-slate-200"}`}
       >

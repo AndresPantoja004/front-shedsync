@@ -71,6 +71,7 @@ export default function Step3() {
       const userResponse = await register({
         email: registro.paso1.email,
         password: registro.paso1.password,
+        phone: registro.paso1.phone,
       });
 
       console.log(userResponse);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useContext } from "react";
-import { AuthContext  } from "../../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { Link } from "expo-router";
 import { useRouter } from "expo-router";
 import {
@@ -13,64 +13,60 @@ import {
 } from "react-native";
 import { login as loginRequest } from "../../services/api/auth";
 
-export default function Login({navigation}) {
+export default function Login({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login } = useContext(AuthContext); // Ahora login espera (token, user)
   const router = useRouter();
 
   const handleLogin = async () => {
-    console.log("Hola dua dua")
     if (!email || !password) {
       Alert.alert("Error", "Por favor completa todos los campos");
       return;
     }
-    console.log("Credenciales", email, password)
 
     try {
       setLoading(true);
       const result = await loginRequest(email, password);
+
+      // 'result' debería tener esta estructura: { token: '...', user: { id_usuario: 1, nombres: '...', ... } }
       console.log("Login OK:", result);
-      
 
       Alert.alert("Éxito", "Inicio de sesión correcto", [
         {
           text: "Continuar",
           onPress: async () => {
-            await login(result.token);
-          }
+            // Pasamos ambos valores al contexto para que se guarden en AsyncStorage
+            await login(result.token, result.usuario);
+            // La navegación suele manejarse automáticamente en el layout principal
+            // dependiendo de si existe el 'token', pero si no, puedes usar router.replace("/home")
+          },
         },
       ]);
 
-      // Navegación a Home
-      
-      
-      // TODO: guardar token con AsyncStorage
-      // await AsyncStorage.setItem('token', result.token);
-
-      // navigation.replace("Home");
     } catch (error) {
       Alert.alert("Error", error.message || "Credenciales incorrectas");
-      console.log(error)
+      console.log(error);
     } finally {
+
       setLoading(false);
-      
+
     }
+
   };
+
 
   return (
     <View className="flex-1 bg-[#171b18] items-center justify-center px-4">
       {/* Card */}
-      <View className="w-full max-w-[420px] gap-8">
+      <View className="w-full max-w-[480px] gap-8">
         {/* Header */}
         <View className="items-center gap-4 pt-4">
           {/* Logo */}
           <View className="w-24 h-24 rounded-full bg-[#1b3124] items-center justify-center shadow-2xl border-4 border-white overflow-hidden">
             <Image
-              source={{
-                uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA8HtdBNHJWgaCTuxuOS39YixvWEEVk-6cwV85m-qTkl4xwjTyiD58Ps8st_a783rhLkl-TIHcLCCIrQ37bJoAJd-VKA5QQjRGqB_AAbJSaOwRQ7QNXLWt1tgvbd5CQ0gaObJj3TtN8Koho3tokMlTLpVTw44_Ka3g_HJjIg8pC6HS6fGgWYUe1ETsjmplaLStUarhRxV7_kCUxwnqj-0uMsSrsOySITQUrcmG09Rb5B4JYKd7sAcpJtI7nzrjLiOR3B6USVNApfL0",
-              }}
+              source={require('../../../assets/images/ShedSync_Logo2.png')}
               className="w-full h-full opacity-90"
               resizeMode="cover"
             />
@@ -162,7 +158,7 @@ export default function Login({navigation}) {
 
         {/* Footer */}
         <View className="items-center pb-6">
-          <TouchableOpacity onPress={()=>router.push("/register/step1")}>
+          <TouchableOpacity onPress={() => router.push("/register/step1")}>
             <Text className="text-[#96c5a9] text-sm">
               ¿No tienes cuenta?
               <Text className="text-[#38a75e] font-bold"> Regístrate</Text>

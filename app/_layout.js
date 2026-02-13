@@ -1,47 +1,46 @@
 import { Stack } from "expo-router";
 import "../global.css";
-import { AuthProvider } from "../src/context/AuthContext";
+import { AuthProvider, AuthContext } from "../src/context/AuthContext"; // Importa ambos
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useEffect } from "react";
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { useContext, useState } from "react";
+import BottomNav from "../src/components/Navigation/ButtonNav";
+import AnimatedSplash from "../src/components/AnimatedSplash";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// 1. Creamos un componente pequeño para el contenido
+function RootLayoutContent() {
+  const { token, loading } = useContext(AuthContext);
 
+
+  // Si está cargando el token de AsyncStorage, no mostramos nada aún
+  if (loading) return null;
+
+  return (
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: "#122017",
+          },
+        }}
+      />
+      {/* 2. Ahora sí, aquí el token ya es accesible */}
+      {token ? <BottomNav /> : null}
+    </>
+  );
+}
+
+// 3. El RootLayout principal solo envuelve con los Providers
 export default function RootLayout() {
-
-  useEffect(() => {
-    const setupNotifications = async () => {
-      await Notifications.requestPermissionsAsync();
-
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("default", {
-          name: "default",
-          importance: Notifications.AndroidImportance.HIGH,
-        });
-      }
-    };
-
-    setupNotifications();
-  }, []);
-
+  const [splashFinished, setSplashFinished] = useState(false);
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: "#122017",
-            },
-          }}
-        />
+        {!splashFinished ? (
+          <AnimatedSplash onFinish={() => setSplashFinished(true)} />
+        ) : (
+          <RootLayoutContent />
+        )}
       </AuthProvider>
     </SafeAreaProvider>
   );

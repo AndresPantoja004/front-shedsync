@@ -35,8 +35,13 @@ export default function Horario({ navigation }) {
       {/* HEADER */}
       <View className="flex-row items-center justify-between px-6 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons
+            name="arrow-back-circle-outline"
+            size={40}
+            color="#38e07b"
+          />
         </TouchableOpacity>
+
 
         <View className="items-center">
           <Text className="text-xs text-gray-400 uppercase">
