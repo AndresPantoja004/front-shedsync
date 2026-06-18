@@ -23,6 +23,7 @@ const ordenDias = {
 };
 
 const convertirAMinutosSemana = (dia, hora) => {
+  if (!hora || ordenDias[dia] === undefined) return 0;
   const [h, m] = hora.split(":");
   const minutosDia = parseInt(h) * 60 + parseInt(m);
   return ordenDias[dia] * 1440 + minutosDia;
@@ -34,6 +35,7 @@ export default function Home() {
   const router = useRouter();
   const [userApi, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [horario, setHorario] = useState([]);
   const [claseActual, setClaseActual] = useState(null);
   const [proximaClase, setProximaClase] = useState(null);
@@ -75,9 +77,12 @@ export default function Home() {
     const loadUser = async () => {
       try {
         const data = await userInfo();
+        console.log(data)
         setUser(data);
-      } catch (error) {
-        console.error("Error cargando usuario:", error);
+        setError(null);
+      } catch (err) {
+        console.error("Error cargando usuario:", err);
+        setError(err.message || "No se pudo cargar tu información.");
       } finally {
         setLoading(false);
       }
@@ -91,6 +96,7 @@ export default function Home() {
   };
 
   const horaEnMinutos = (hora) => {
+    if (!hora) return 0;
     const [h, m] = hora.split(":");
     return parseInt(h) * 60 + parseInt(m);
   };
@@ -176,10 +182,11 @@ export default function Home() {
     const cargarHorario = async () => {
       try {
         const data = await obtenerHorario(userApi?.id_estudiante);
-        setHorario(data);
+        setHorario(Array.isArray(data) ? data : []);
         console.log(data);
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "No se pudo cargar tu horario.");
       }
     };
 
@@ -248,6 +255,14 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* BANNER DE ERROR (servicio no disponible) */}
+        {error && (
+          <View className="mt-4 bg-red-500/10 border border-red-500/40 rounded-xl p-4 flex-row items-center gap-3">
+            <Ionicons name="cloud-offline-outline" size={22} color="#ef4444" />
+            <Text className="text-red-400 text-sm flex-1">{error}</Text>
+          </View>
+        )}
+
         {/* EN CURSO */}
         <View className="mt-4">
           <View className="flex-row justify-between items-center mb-3">
@@ -273,14 +288,14 @@ export default function Home() {
 
                   <Text className="text-2xl font-bold text-white">
                     {claseActual
-                      ? claseActual.Asignatura.nombre
-                      : proximaClase.Asignatura.nombre}
+                      ? claseActual?.Asignatura?.nombre
+                      : proximaClase?.Asignatura?.nombre}
                   </Text>
 
                   <Text className="text-gray-400 text-sm mt-1">
                     {claseActual
-                      ? `${claseActual.hora_inicio.slice(0, 5)} - ${claseActual.hora_fin.slice(0, 5)}`
-                      : `${proximaClase.hora_inicio.slice(0, 5)} - ${proximaClase.hora_fin.slice(0, 5)}`}
+                      ? `${claseActual?.hora_inicio?.slice(0, 5)} - ${claseActual?.hora_fin?.slice(0, 5)}`
+                      : `${proximaClase?.hora_inicio?.slice(0, 5)} - ${proximaClase?.hora_fin?.slice(0, 5)}`}
                   </Text>
                 </View>
 

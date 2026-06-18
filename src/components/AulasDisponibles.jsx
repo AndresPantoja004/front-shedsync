@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 
 // Contexto y Servicios
 import { AuthContext } from "../context/AuthContext"; // Usar tu contexto global
-import { sendMessage } from "../services/wapi/sendMesagge";
+// import { sendMessage } from "../services/wapi/sendMesagge";
 import { getEspaciosDisponibles } from "../services/api/espacios";
 import { crearReserva } from "../services/api/reserva";
 
@@ -29,6 +29,7 @@ export default function BuscarEspacios() {
 
   const [espacios, setEspacios] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState("");
 
@@ -51,17 +52,19 @@ export default function BuscarEspacios() {
       const data = await getEspaciosDisponibles(tipo, textoBusqueda);
       console.log("DAtaaa", data);
 
-      const espaciosNormalizados = data.map((e) => ({
+      const espaciosNormalizados = (Array.isArray(data) ? data : []).map((e) => ({
         id: e.id_espacio,
         nombre: e.nombre,
         capacidad: e.capacidad,
-        tipo: e.tipo.toLowerCase(),
+        tipo: (e.tipo || "").toLowerCase(),
         horarios: e.horarios || [],
       }));
       setEspacios(espaciosNormalizados);
-    } catch (error) {
-      console.error(error);
-      // Alert.alert("Error", "No se pudieron cargar los espacios");
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setEspacios([]);
+      setError(err.message || "No se pudieron cargar los espacios.");
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,7 @@ export default function BuscarEspacios() {
 _Este es un aviso automático generado por el sistema de gestión de horarios ESPE._`;
 
       // Envío del mensaje al administrador
-      await sendMessage("593980098210", mensajeReserva);
+      // await sendMessage("593980098210", mensajeReserva);
 
       Alert.alert(
         "¡Éxito!",
@@ -173,7 +176,12 @@ _Este es un aviso automático generado por el sistema de gestión de horarios ES
         className="px-6"
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {espacios.length === 0 && !loading ? (
+        {error ? (
+          <View className="mt-6 bg-red-500/10 border border-red-500/40 rounded-xl p-4 flex-row items-center gap-3">
+            <Ionicons name="cloud-offline-outline" size={22} color="#ef4444" />
+            <Text className="text-red-400 text-sm flex-1">{error}</Text>
+          </View>
+        ) : espacios.length === 0 && !loading ? (
           <Text className="text-gray-500 text-center mt-10">
             No se encontraron resultados
           </Text>

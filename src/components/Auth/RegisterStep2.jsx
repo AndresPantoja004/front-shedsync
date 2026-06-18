@@ -58,6 +58,7 @@ export default function RegisterStep2() {
 
   const router = useRouter();
   const [loadingCareers, setLoadingCareers] = useState(true);
+  const [errorCareers, setErrorCareers] = useState(null);
 
   const guardarPaso2 = () => {
     if (!career) {
@@ -92,24 +93,27 @@ export default function RegisterStep2() {
       try {
         const data = await getCarreras();
 
-        const mapped = data.map((c) => {
+        const mapped = (Array.isArray(data) ? data : []).map((c) => {
           let ui = {};
+          const nombre = c.nombre || "";
 
-          if (c.nombre.includes("BIOTEC")) ui = CAREER_UI.BIOTECNOLOGÍA;
-          else if (c.nombre.includes("AGRO")) ui = CAREER_UI.AGROPECUARIA;
-          else if (c.nombre.includes("TECNOLOG")) ui = CAREER_UI.TECNOLOGÍA;
+          if (nombre.includes("BIOTEC")) ui = CAREER_UI.BIOTECNOLOGÍA;
+          else if (nombre.includes("AGRO")) ui = CAREER_UI.AGROPECUARIA;
+          else if (nombre.includes("TECNOLOG")) ui = CAREER_UI.TECNOLOGÍA;
 
           return {
             id: c.id_carrera,
-            title: c.nombre,
+            title: nombre,
             totalSemestres: c.total_semestres,
             ...ui,
           };
         });
 
         setCareers(mapped);
+        setErrorCareers(null);
       } catch (err) {
         console.error("Error cargando carreras", err);
+        setErrorCareers(err.message || "No se pudieron cargar las carreras.");
       } finally {
         setLoadingCareers(false);
       }
@@ -203,6 +207,11 @@ export default function RegisterStep2() {
           })}
           {loadingCareers && (
             <Text className="text-slate-400 px-5">Cargando carreras...</Text>
+          )}
+          {errorCareers && (
+            <View className="bg-red-500/10 border border-red-500/40 rounded-xl p-4">
+              <Text className="text-red-400 text-sm">{errorCareers}</Text>
+            </View>
           )}
         </View>
 

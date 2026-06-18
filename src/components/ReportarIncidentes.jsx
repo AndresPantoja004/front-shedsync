@@ -16,7 +16,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { sendMessage } from "../services/wapi/sendMesagge";
+// import { sendMessage } from "../services/wapi/sendMesagge";
 
 // Servicios
 import { enviarIncidencia } from "../services/api/incidencia";
@@ -48,6 +48,7 @@ export default function ReportarIncidencia() {
   const [espacios, setEspacios] = useState([]);
   const [espacioSeleccionado, setEspacioSeleccionado] = useState(null);
   const [buscando, setBuscando] = useState(false);
+  const [errorEspacios, setErrorEspacios] = useState(null);
 
   // Lógica de búsqueda con Debounce
   useEffect(() => {
@@ -64,9 +65,12 @@ export default function ReportarIncidencia() {
     try {
       // Pasamos vacío en tipo para que busque en todos (Aulas y Labs)
       const data = await getEspaciosDisponibles("", texto);
-      setEspacios(data);
-    } catch (error) {
-      console.error("Error buscando espacios:", error);
+      setEspacios(Array.isArray(data) ? data : []);
+      setErrorEspacios(null);
+    } catch (err) {
+      console.error("Error buscando espacios:", err);
+      setEspacios([]);
+      setErrorEspacios(err.message || "No se pudieron cargar los espacios.");
     } finally {
       setBuscando(false);
     }
@@ -138,7 +142,7 @@ export default function ReportarIncidencia() {
 _Mensaje generado automáticamente por SchedSync._`;
 
       // 3. Enviar a la autoridad (reemplaza el número si es necesario)
-      await sendMessage("593998920369", mensajeFormal);
+      // await sendMessage("593998920369", mensajeFormal);
 
       Alert.alert(
         "¡Enviado!",
@@ -313,9 +317,18 @@ _Mensaje generado automáticamente por SchedSync._`;
             </TouchableOpacity>
           </View>
 
+          {errorEspacios && (
+            <View className="mb-4 bg-red-500/10 border border-red-500/40 rounded-xl p-4 flex-row items-center gap-3">
+              <Ionicons name="cloud-offline-outline" size={22} color="#ef4444" />
+              <Text className="text-red-400 text-sm flex-1">
+                {errorEspacios}
+              </Text>
+            </View>
+          )}
+
           <FlatList
             data={espacios}
-            keyExtractor={(item) => item.id_espacio.toString()}
+            keyExtractor={(item) => String(item.id_espacio)}
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() => {
@@ -329,12 +342,13 @@ _Mensaje generado automáticamente por SchedSync._`;
                   {item.nombre}
                 </Text>
                 <Text className="text-gray-500 text-xs">
-                  {item.tipo.toUpperCase()} • Cap: {item.capacidad}
+                  {item.tipo?.toUpperCase()} • Cap: {item.capacidad}
                 </Text>
               </TouchableOpacity>
             )}
             ListEmptyComponent={() =>
-              !buscando && (
+              !buscando &&
+              !errorEspacios && (
                 <Text className="text-gray-500 text-center mt-10">
                   No se encontraron espacios con ese nombre.
                 </Text>

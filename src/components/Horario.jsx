@@ -10,15 +10,18 @@ export default function Horario({ navigation }) {
   const scheme = useColorScheme();
   const router = useRouter();
   const [horario, setHorario] = useState([]);
+  const [error, setError] = useState(null);
   const [diaSeleccionado, setDiaSeleccionado] = useState("LUNES");
 
   useEffect(() => {
     const cargarHorario = async () => {
       try {
-        const data = await obtenerHorario(12); // 🔥 usa id real
-        setHorario(data);
-      } catch (error) {
-        console.error(error);
+        const data = await obtenerHorario(1);
+        setHorario(Array.isArray(data) ? data : []);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "No se pudo cargar el horario.");
       }
     };
 
@@ -88,19 +91,32 @@ export default function Horario({ navigation }) {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
+        {error && (
+          <View className="mb-4 bg-red-500/10 border border-red-500/40 rounded-xl p-4 flex-row items-center gap-3">
+            <Ionicons name="cloud-offline-outline" size={22} color="#ef4444" />
+            <Text className="text-red-400 text-sm flex-1">{error}</Text>
+          </View>
+        )}
+
+        {!error && horarioDelDia.length === 0 && (
+          <Text className="text-gray-500 text-center mt-10">
+            No hay clases para este día.
+          </Text>
+        )}
+
         {horarioDelDia.map((item, i) => (
           <View key={i} className="flex-row mb-6">
             {/* HORA */}
             {/* LÍNEA DE TIEMPO IZQUIERDA */}
             <View className="items-center w-16 mr-2">
               <Text className="text-[11px] font-bold text-slate-400 mb-1">
-                {item.hora_inicio.slice(0, 5)}
+                {item.hora_inicio?.slice(0, 5)}
               </Text>
               <View className="w-[2px] flex-1 bg-slate-700 my-1 items-center">
                 <View className="w-3 h-3 rounded-full bg-primary border-4 border-[#0f172a] -mt-1" />
               </View>
               <Text className="text-[11px] text-slate-500 mt-1 mb-4">
-                {item.hora_fin.slice(0, 5)}
+                {item.hora_fin?.slice(0, 5)}
               </Text>
             </View>
 
@@ -130,14 +146,14 @@ export default function Horario({ navigation }) {
                   </View>
 
                   <Text className="text-base font-bold text-white mb-1">
-                    {item.Asignatura.nombre}
+                    {item.Asignatura?.nombre}
                   </Text>
 
                   <View className="flex-row items-center gap-2 mb-1">
                     <Ionicons name="time-outline" size={14} color="#9ca3af" />
                     <Text className="text-xs text-gray-400">
-                      {item.hora_inicio.slice(0, 5)} -{" "}
-                      {item.hora_fin.slice(0, 5)}
+                      {item.hora_inicio?.slice(0, 5)} -{" "}
+                      {item.hora_fin?.slice(0, 5)}
                     </Text>
                   </View>
 
@@ -149,7 +165,7 @@ export default function Horario({ navigation }) {
                     />
                     <Text className="text-xs text-gray-400">
                       {" "}
-                      {item.Espacio.nombre}
+                      {item.Espacio?.nombre}
                     </Text>
                   </View>
                 </View>

@@ -23,8 +23,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "df081370-9410-4327-aa75-3f5f37c1d261"
+        "projectId": "95d330aa-2796-4ed0-9a23-a2ef18cab742"
       }
-    }
+    },
+    "owner": "johngalarza"
   }
 }

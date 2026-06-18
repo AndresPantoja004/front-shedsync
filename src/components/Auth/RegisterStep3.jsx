@@ -19,6 +19,7 @@ export default function Step3() {
 
   const [semestres, setSemestres] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorSemestres, setErrorSemestres] = useState(null);
 
   const [selected, setSelected] = useState(
     registro.paso3?.repeatedSubjects || [],
@@ -32,9 +33,11 @@ export default function Step3() {
       try {
         console.log("Carrera ID" + careerId);
         const data = await getSemestresCarrera(careerId);
-        setSemestres(data);
-      } catch (error) {
-        console.error("Error cargando semestres", error);
+        setSemestres(Array.isArray(data) ? data : []);
+        setErrorSemestres(null);
+      } catch (err) {
+        console.error("Error cargando semestres", err);
+        setErrorSemestres(err.message || "No se pudieron cargar los semestres.");
       } finally {
         setLoading(false);
       }
@@ -172,6 +175,12 @@ export default function Step3() {
           <Text className="text-white text-center mt-10">
             Cargando semestres...
           </Text>
+        ) : errorSemestres ? (
+          <View className="mx-4 mt-10 bg-red-500/10 border border-red-500/40 rounded-xl p-4">
+            <Text className="text-red-400 text-sm text-center">
+              {errorSemestres}
+            </Text>
+          </View>
         ) : (
           <View className="px-4 mt-6 gap-6">
             {semestres.map((sem) => {
