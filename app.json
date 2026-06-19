@@ -19,7 +19,8 @@
         "backgroundColor": "#122017"
       },
       "package": "com.andrespantoja.schedsync",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "usesCleartextTraffic": true
     },
     "extra": {
       "eas": {
