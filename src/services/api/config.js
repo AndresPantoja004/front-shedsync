@@ -1,1 +1,1 @@
-export const API_URL = `${process.env.EXPO_PUBLIC_API_URL}`;
+export const API_URL = "http://178.104.227.250:8080/api";
